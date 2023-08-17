@@ -1,15 +1,38 @@
 #!/usr/bin/python3
-import random
 import sys
-from time import sleep
-import datetime
+import signal
 
-for i in range(10000):
-    sleep(random.random())
-    sys.stdout.write("{:d}.{:d}.{:d}.{:d} - [{}] \"GET /projects/260 HTTP/1.1\" {} {}\n".format(
-        random.randint(1, 255), random.randint(1, 255), random.randint(1, 255), random.randint(1, 255),
-        datetime.datetime.now(),
-        random.choice([200, 301, 400, 401, 403, 404, 405, 500]),
-        random.randint(1, 1024)
-    ))
-    sys.stdout.flush()
+def print_stats(file_size, status_counts):
+    print("File size: {:d}".format(file_size))
+    for code, count in sorted(status_counts.items()):
+        print("{:d}: {:d}".format(code, count))
+
+def main():
+    file_size = 0
+    status_counts = {}
+
+    try:
+        for i, line in enumerate(sys.stdin, start=1):
+            parts = line.split()
+            if len(parts) != 9:
+                continue
+
+            try:
+                status_code = int(parts[7])
+                size = int(parts[8])
+            except (ValueError, IndexError):
+                continue
+
+            file_size += size
+            status_counts[status_code] = status_counts.get(status_code, 0) + 1
+
+            if i % 10 == 0:
+                print_stats(file_size, status_counts)
+
+    except KeyboardInterrupt:
+        pass
+
+    print_stats(file_size, status_counts)
+
+if __name__ == "__main__":
+    main()
